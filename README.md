@@ -16,7 +16,7 @@ Auto-Ghosting: Automatically marks applications as "Ghosted" if there is no acti
 
 Clone the repository:
 ```
-git clone [https://github.com/yourusername/job-tracker.git](https://github.com/yourusername/job-tracker.git)
+git clone https://github.com/jahenner/job_tracker.git
 cd job-tracker
 ```
 
