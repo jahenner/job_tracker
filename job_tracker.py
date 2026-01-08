@@ -96,6 +96,14 @@ def update_status(job_id, new_status):
     conn.commit()
     conn.close()
 
+def update_date(job_id, new_date):
+    """Updates the date applied of an application."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE applications SET date_applied = ? WHERE id = ?", (new_date, job_id))
+    conn.commit()
+    conn.close()
+
 def delete_application(job_id):
     """Deletes an application by ID."""
     conn = get_connection()
@@ -231,14 +239,12 @@ def main():
             selected_id = int(display_df.iloc[selected_index]['id'])
             
             # If user explicitly clicks a row, we clear the "auto-remembered" update ID
-            # so the UI feels responsive to their click
             if 'updated_job_id' in st.session_state:
                 del st.session_state.updated_job_id
 
-        # Priority B: User just updated a job, and the table selection was cleared by the refresh
-        # We want to keep showing the details for that job.
+        # Priority B: User just updated a job (status or date), keep it selected
         elif 'updated_job_id' in st.session_state:
-            # Verify the ID still exists in the data (e.g., wasn't deleted)
+            # Verify the ID still exists in the data
             if st.session_state.updated_job_id in display_df['id'].values:
                 selected_id = st.session_state.updated_job_id
         # ----------------------------------------
@@ -264,12 +270,10 @@ def main():
                 st.subheader("Status Management")
                 status_options = ["Applied", "Screening", "Interviewing", "Offer", "Rejected", "Ghosted"]
                 
-                # Determine current index for default value
                 current_index = 0
                 if job_data['status'] in status_options:
                     current_index = status_options.index(job_data['status'])
                 
-                # Use a dynamic key based on ID so state doesn't leak between jobs
                 new_status = st.selectbox(
                     "Current Status", 
                     status_options, 
@@ -277,21 +281,32 @@ def main():
                     key=f"status_update_box_{selected_id}"
                 )
                 
-                # Show update button only if status has changed
                 if new_status != job_data['status']:
                     if st.button("Update Status"):
                         update_status(selected_id, new_status)
-                        
-                        # --- NEW: Save this ID to session state before rerun ---
                         st.session_state.updated_job_id = selected_id
-                        # -------------------------------------------------------
-                        
                         st.success(f"Status updated to {new_status}!")
                         st.rerun()
 
                 st.divider()
-                st.write(f"**Applied:** {job_data['date_applied']}")
+
+                # --- NEW: Date Management Section ---
                 st.write(f"**Resume Used:** {job_data['resume_version']}")
+                
+                # Convert string date to datetime object for the picker
+                current_date = pd.to_datetime(job_data['date_applied']).date()
+                
+                # Date Input
+                new_date = st.date_input("Edit Date Applied", value=current_date)
+                
+                # If date changed, show update button
+                if new_date != current_date:
+                    if st.button("Update Date", key="btn_update_date"):
+                        update_date(selected_id, new_date)
+                        st.session_state.updated_job_id = selected_id
+                        st.success("Date updated!")
+                        st.rerun()
+                # -------------------------------------
                 
                 st.divider()
                 st.warning("Danger Zone")
